@@ -222,5 +222,7 @@ class ChatPrompt(base_prompt.BasePrompt):
         chat_prompt._commit = prompt_version.commit
         chat_prompt._metadata = prompt_version.metadata
         chat_prompt._type = prompt_version.type
-        chat_prompt._tags = copy.copy(prompt_version.tags) if prompt_version.tags else []
+        chat_prompt._tags = (
+            copy.copy(prompt_version.tags) if prompt_version.tags else []
+        )
         return chat_prompt
