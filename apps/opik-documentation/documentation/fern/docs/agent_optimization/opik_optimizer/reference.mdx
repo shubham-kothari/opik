@@ -1086,9 +1086,7 @@ ChatPrompt(
     tools: list[dict[str, typing.Any]] | None = None,
     function_map: dict[str, collections.abc.Callable] | None = None,
     model: str = 'gpt-4o-mini',
-    model_parameters: dict[str, typing.Any] | None = None,
-    model_kwargs: dict[str, typing.Any] | None = None,
-    kwargs: Any
+    model_parameters: dict[str, typing.Any] | None = None
 )
 ```
 
@@ -1103,8 +1101,6 @@ ChatPrompt(
 <ParamField path="function_map" type="dict[str, collections.abc.Callable] | None" optional={true} />
 <ParamField path="model" type="str" optional={true} default="gpt-4o-mini" />
 <ParamField path="model_parameters" type="dict[str, typing.Any] | None" optional={true} />
-<ParamField path="model_kwargs" type="dict[str, typing.Any] | None" optional={true} />
-<ParamField path="kwargs" type="Any" />
 
 ### Methods
 #### copy
@@ -1229,22 +1225,4 @@ invoke_agent(
 <ParamField path="dataset_item" type="Any" />
 <ParamField path="allow_tool_use" type="Any" optional={true} default="False" />
 <ParamField path="seed" type="Any" optional={true} />
-
-#### invoke_agent_candidates
-```python
-invoke_agent_candidates(
-    prompts: Any,
-    dataset_item: Any,
-    allow_tool_use: Any = False,
-    seed: Any = None
-)
-```
-
-
-**Parameters:**
-
-<ParamField path="prompts" type="Any">Mapping of prompt name to ChatPrompt.</ParamField>
-<ParamField path="dataset_item" type="Any">Dataset row used to render the prompt messages.</ParamField>
-<ParamField path="allow_tool_use" type="Any" optional={true} default="False">Whether tool execution is allowed in this invocation.</ParamField>
-<ParamField path="seed" type="Any" optional={true}>Optional seed for reproducibility.</ParamField>
 
