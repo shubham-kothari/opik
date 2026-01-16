@@ -1,4 +1,6 @@
 import React, { useCallback, useMemo } from "react";
+import isArray from "lodash/isArray";
+import isFunction from "lodash/isFunction";
 import { Settings, Filter, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,7 +74,7 @@ const DashboardProjectSettingsButton: React.FC<
   const experimentDataSource =
     config?.experimentDataSource || EXPERIMENT_DATA_SOURCE.SELECT_EXPERIMENTS;
   const experimentFilters = useMemo(
-    () => config?.experimentFilters || [],
+    () => (isArray(config?.experimentFilters) ? config.experimentFilters : []),
     [config?.experimentFilters],
   );
   const maxExperimentsCount = config?.maxExperimentsCount;
@@ -104,11 +106,14 @@ const DashboardProjectSettingsButton: React.FC<
   );
 
   const handleFiltersChange = useCallback(
-    (filters: Filters) => {
+    (filtersOrUpdater: Filters | ((prev: Filters) => Filters)) => {
       if (!config) return;
-      setConfig({ ...config, experimentFilters: filters });
+      const updatedFilters = isFunction(filtersOrUpdater)
+        ? filtersOrUpdater(experimentFilters)
+        : filtersOrUpdater;
+      setConfig({ ...config, experimentFilters: updatedFilters });
     },
-    [config, setConfig],
+    [config, setConfig, experimentFilters],
   );
 
   const handleMaxExperimentsCountChange = useCallback(

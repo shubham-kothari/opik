@@ -1,5 +1,7 @@
 import React from "react";
 import get from "lodash/get";
+import isArray from "lodash/isArray";
+import isFunction from "lodash/isFunction";
 import { Filter, ListChecks } from "lucide-react";
 import {
   FormControl,
@@ -226,7 +228,9 @@ const DashboardDialogDetailsStep: React.FunctionComponent<
                   <ToggleGroup
                     type="single"
                     variant="ghost"
-                    value={field.value || EXPERIMENT_DATA_SOURCE.SELECT_EXPERIMENTS}
+                    value={
+                      field.value || EXPERIMENT_DATA_SOURCE.SELECT_EXPERIMENTS
+                    }
                     onValueChange={(value) => {
                       if (value) {
                         field.onChange(value);
@@ -260,7 +264,8 @@ const DashboardDialogDetailsStep: React.FunctionComponent<
             )}
           />
 
-          {experimentDataSource === EXPERIMENT_DATA_SOURCE.SELECT_EXPERIMENTS && (
+          {experimentDataSource ===
+            EXPERIMENT_DATA_SOURCE.SELECT_EXPERIMENTS && (
             <FormField
               control={control}
               name="experimentIds"
@@ -298,9 +303,18 @@ const DashboardDialogDetailsStep: React.FunctionComponent<
           {experimentDataSource === EXPERIMENT_DATA_SOURCE.FILTER_AND_GROUP && (
             <>
               <FiltersAccordionSection
-                filters={experimentFilters}
+                filters={isArray(experimentFilters) ? experimentFilters : []}
                 columns={EXPERIMENT_FILTER_COLUMNS as ColumnData<unknown>[]}
-                onChange={(filters) => onExperimentFiltersChange?.(filters)}
+                onChange={(filtersOrUpdater) => {
+                  if (onExperimentFiltersChange) {
+                    const updatedFilters = isFunction(filtersOrUpdater)
+                      ? filtersOrUpdater(
+                          isArray(experimentFilters) ? experimentFilters : [],
+                        )
+                      : filtersOrUpdater;
+                    onExperimentFiltersChange(updatedFilters);
+                  }
+                }}
               />
 
               <FormField
@@ -321,7 +335,9 @@ const DashboardDialogDetailsStep: React.FunctionComponent<
                           value={field.value ?? ""}
                           onChange={(e) => {
                             const value = e.target.value;
-                            const numValue = value ? parseInt(value, 10) : undefined;
+                            const numValue = value
+                              ? parseInt(value, 10)
+                              : undefined;
                             field.onChange(numValue);
                             onMaxExperimentsCountChange?.(numValue);
                           }}
