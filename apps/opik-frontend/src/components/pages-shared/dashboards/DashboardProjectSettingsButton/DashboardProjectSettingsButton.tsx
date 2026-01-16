@@ -197,7 +197,9 @@ const DashboardProjectSettingsButton: React.FC<
             </Description>
           </div>
           <div>
-            <h4 className="comet-body-s-accented mb-2">Experiment data source</h4>
+            <h4 className="comet-body-s-accented mb-2">
+              Experiment data source
+            </h4>
             <ToggleGroup
               type="single"
               variant="ghost"

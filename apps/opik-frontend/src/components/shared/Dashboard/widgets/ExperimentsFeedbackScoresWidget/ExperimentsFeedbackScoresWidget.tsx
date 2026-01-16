@@ -254,11 +254,7 @@ const ExperimentsFeedbackScoresWidget: React.FunctionComponent<
       return filters.filter(isFilterValid);
     }
     return (globalConfig.experimentFilters || []).filter(isFilterValid);
-  }, [
-    overrideDefaults,
-    widgetConfig?.filters,
-    globalConfig.experimentFilters,
-  ]);
+  }, [overrideDefaults, widgetConfig?.filters, globalConfig.experimentFilters]);
 
   const maxExperimentsCount = useMemo(() => {
     if (overrideDefaults) {

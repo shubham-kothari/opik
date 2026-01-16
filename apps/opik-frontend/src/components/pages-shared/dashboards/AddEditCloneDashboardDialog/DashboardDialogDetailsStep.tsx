@@ -34,6 +34,8 @@ import {
   COLUMN_TYPE,
   ColumnData,
 } from "@/types/shared";
+import { FiltersArraySchema } from "@/components/shared/FiltersAccordionSection/schema";
+import { z } from "zod";
 import DashboardTemplateCard from "./DashboardTemplateCard";
 
 type ExperimentColumnData = {
@@ -68,7 +70,7 @@ interface DashboardFormFields {
   experimentIds?: string[];
   templateType?: string;
   experimentDataSource?: EXPERIMENT_DATA_SOURCE;
-  experimentFilters?: Filters;
+  experimentFilters?: z.infer<typeof FiltersArraySchema>;
   maxExperimentsCount?: number;
 }
 

@@ -70,9 +70,7 @@ const ExperimentsFeedbackScoresWidgetEditor = forwardRef<WidgetEditorHandle>(
 
     const dataSource = useMemo(() => {
       if (overrideDefaults) {
-        return (
-          config.dataSource || EXPERIMENT_DATA_SOURCE.SELECT_EXPERIMENTS
-        );
+        return config.dataSource || EXPERIMENT_DATA_SOURCE.SELECT_EXPERIMENTS;
       }
       return (
         globalConfig?.experimentDataSource ||
@@ -98,11 +96,7 @@ const ExperimentsFeedbackScoresWidgetEditor = forwardRef<WidgetEditorHandle>(
         return config.experimentIds || [];
       }
       return globalConfig?.experimentIds || [];
-    }, [
-      overrideDefaults,
-      config.experimentIds,
-      globalConfig?.experimentIds,
-    ]);
+    }, [overrideDefaults, config.experimentIds, globalConfig?.experimentIds]);
 
     const chartType = config.chartType || CHART_TYPE.line;
 
