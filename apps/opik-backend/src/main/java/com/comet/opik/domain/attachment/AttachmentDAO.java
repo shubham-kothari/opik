@@ -22,6 +22,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -43,6 +44,8 @@ public interface AttachmentDAO {
     Mono<Long> deleteByEntityIds(EntityType entityType, Set<UUID> entityIds);
 
     Mono<Long> deleteByFileNames(EntityType entityType, Set<UUID> entityIds, Set<String> fileNames);
+
+    Mono<Map<UUID, Long>> getAttachmentCountsByEntityIds(EntityType entityType, Set<UUID> entityIds);
 }
 
 @Singleton
@@ -145,6 +148,22 @@ class AttachmentDAOImpl implements AttachmentDAO {
             WHERE workspace_id = :workspace_id
             AND entity_type = :entity_type
             AND entity_id IN :entity_ids
+            ;
+            """;
+
+    private static final String ATTACHMENT_COUNTS_BY_ENTITY_IDS = """
+            SELECT entity_id, count(file_name) as count
+            FROM
+            (
+                SELECT entity_id, file_name
+                FROM attachments
+                WHERE workspace_id = :workspace_id
+                AND entity_type = :entity_type
+                AND entity_id IN :entity_ids
+                ORDER BY (workspace_id, entity_type, entity_id, file_name) DESC
+                LIMIT 1 BY entity_id, file_name
+            ) as latest_rows
+            GROUP BY entity_id
             ;
             """;
 
@@ -297,5 +316,27 @@ class AttachmentDAOImpl implements AttachmentDAO {
                 .mimeType(row.get("mime_type", String.class))
                 .fileSize(row.get("file_size", Long.class))
                 .build());
+    }
+
+    @Override
+    @WithSpan
+    public Mono<Map<UUID, Long>> getAttachmentCountsByEntityIds(@NonNull EntityType entityType,
+            @NonNull Set<UUID> entityIds) {
+        if (CollectionUtils.isEmpty(entityIds)) {
+            return Mono.just(Map.of());
+        }
+
+        return asyncTemplate.nonTransaction(connection -> {
+            var statement = connection.createStatement(ATTACHMENT_COUNTS_BY_ENTITY_IDS);
+
+            statement.bind("entity_ids", entityIds.toArray(UUID[]::new))
+                    .bind("entity_type", entityType.getValue());
+
+            return makeMonoContextAware(bindWorkspaceIdToMono(statement))
+                    .flatMapMany(result -> result.map((row, rowMetadata) -> Map.entry(
+                            row.get("entity_id", UUID.class),
+                            row.get("count", Long.class))))
+                    .collectMap(Map.Entry::getKey, Map.Entry::getValue);
+        });
     }
 }
