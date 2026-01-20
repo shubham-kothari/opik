@@ -1,0 +1,14 @@
+[project]
+name = "opik-dev"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "langchain-core>=1.2.7",
+    "langchain-openai>=1.1.7",
+    "langgraph>=1.0.6",
+    "pip>=25.3",
+    "setuptools>=80.9.0",
+    "wheel>=0.45.1",
+]

@@ -1,6 +1,7 @@
 from typing import (
     List,
     Optional,
+    Union,
 )
 
 import httpx
@@ -15,7 +16,8 @@ from opik.message_processing.messages import (
 from opik.opik_context import get_current_span_data, get_current_trace_data
 
 from . import guards, rest_api_client, schemas, tracing
-
+from .guards.pgai.pointguard import PointGuard
+from .guards.pgai.pointguard_api_client import PointGuardApiClient
 
 GUARDRAIL_DECORATOR = tracing.GuardrailsTrackDecorator()
 
@@ -75,6 +77,24 @@ class Guardrail:
         self._initialize_api_client(
             host_url=self._client.config.guardrails_backend_host,
         )
+
+        # Initialize PointGuard API clients for any PointGuard guards
+        self._pointguard_clients: dict[str, PointGuardApiClient] = {}
+        self._pointguard_guards: List[PointGuard] = []
+
+        for guard in guards:
+            if isinstance(guard, PointGuard):
+                self._pointguard_guards.append(guard)
+                # Create a client for this PointGuard if we don't have one for its base_url
+                if guard.base_url not in self._pointguard_clients:
+                    self._pointguard_clients[guard.base_url] = (
+                        PointGuardApiClient(
+                            base_url=guard.base_url,
+                            api_key=guard.api_key,
+                            org=guard.org,
+                            timeout=self.config_.guardrail_timeout,
+                        )
+                    )
 
     def _initialize_api_client(self, host_url: str) -> None:
         self._api_client = rest_api_client.GuardrailsApiClient(
@@ -155,3 +175,209 @@ class Guardrail:
             )
 
         return result
+
+    def validate_input(
+        self, text: str, correlation_key: Optional[str] = None
+    ) -> Union[schemas.ValidationResponse, schemas.PointGuardValidationResponse]:
+        """
+        Validate input text against all configured guardrails.
+
+        This method validates text before it is sent to an LLM. For PointGuard guards,
+        it calls the PointGuard input validation endpoint. For other guards, it uses
+        the standard validation flow.
+
+        Args:
+            text: The input text to validate
+            correlation_key: Optional tag/identifier for this request (PointGuard only)
+
+        Returns:
+            ValidationResponse or PointGuardValidationResponse containing validation results
+
+        Raises:
+            opik.exceptions.GuardrailValidationFailed: If validation fails
+            httpx.HTTPStatusError: If the API returns an error status code
+
+        Example:
+            ```python
+            from opik.guardrails import Guardrail, PointGuard
+
+            guard = Guardrail(guards=[
+                PointGuard(policy_name="my-policy")
+            ])
+
+            # Validate user input before sending to LLM
+            result = guard.validate_input("What is the capital of France?")
+            ```
+        """
+        # If we have PointGuard guards, use their input validation
+        if self._pointguard_guards:
+            result: schemas.PointGuardValidationResponse = self._validate_input(
+                generation=text, correlation_key=correlation_key
+            )  # type: ignore
+            return self._parse_result(result)
+
+        # Fall back to standard validation for non-PointGuard guards
+        return self.validate(text)
+
+    @GUARDRAIL_DECORATOR.track
+    def _validate_input(self, generation: str, correlation_key: Optional[str] = None) -> schemas.PointGuardValidationResponse:
+        """Internal method for PointGuard input validation with automatic span tracking."""
+        all_validations: List[schemas.ValidationResult] = []
+        all_passed = True
+        last_details = None
+
+        for pg_guard in self._pointguard_guards:
+            client = self._pointguard_clients[pg_guard.base_url]
+            result = client.validate_input(generation, pg_guard.policy_name, correlation_key)
+
+            all_validations.extend(result.validations)
+            if not result.validation_passed:
+                all_passed = False
+            last_details = result.details
+
+        combined_result = schemas.PointGuardValidationResponse(
+            validation_passed=all_passed,
+            validations=all_validations,
+            details=last_details,
+        )
+        
+        # Set guardrail result for tracking
+        if not all_passed:
+            combined_result.guardrail_result = "failed"
+        else:
+            combined_result.guardrail_result = "passed"
+
+        return combined_result
+
+    def validate_output(
+        self, input_text: str, output_text: str, correlation_key: Optional[str] = None
+    ) -> Union[schemas.ValidationResponse, schemas.PointGuardValidationResponse]:
+        """
+        Validate output text against all configured guardrails.
+
+        This method validates text after it is received from an LLM. For PointGuard guards,
+        it calls the PointGuard output validation endpoint with both the original input
+        and the LLM's output. For other guards, it uses the standard validation flow
+        on the output text.
+
+        Args:
+            input_text: The original input text
+            output_text: The LLM output text to validate
+            correlation_key: Optional tag/identifier for this request (PointGuard only)
+
+        Returns:
+            ValidationResponse or PointGuardValidationResponse containing validation results
+
+        Raises:
+            opik.exceptions.GuardrailValidationFailed: If validation fails
+            httpx.HTTPStatusError: If the API returns an error status code
+
+        Example:
+            ```python
+            from opik.guardrails import Guardrail, PointGuard
+
+            guard = Guardrail(guards=[
+                PointGuard(policy_name="my-policy")
+            ])
+
+            # Validate LLM output
+            result = guard.validate_output(
+                input_text="Tell me about security",
+                output_text="Here are some security best practices...",
+            )
+            ```
+        """
+        # If we have PointGuard guards, use their output validation
+        if self._pointguard_guards:
+            result: schemas.PointGuardValidationResponse = self._validate_output(
+                generation=output_text, input_text=input_text, correlation_key=correlation_key
+            )  # type: ignore
+            return self._parse_result(result)
+
+        # Fall back to standard validation for non-PointGuard guards
+        return self.validate(output_text)
+    
+    def validate_and_get_input(self, text: str, correlation_key: Optional[str] = None) -> str:
+        """
+        Validate input text and return the validated content in one step.
+        
+        This is a convenience method that combines validate_input() and get_validated_content().
+        Use this when you just need the safe content to pass to your LLM.
+        
+        Args:
+            text: The input text to validate
+            correlation_key: Optional tag/identifier for this request (PointGuard only)
+            
+        Returns:
+            str: The validated content (modified if PII was redacted, otherwise original)
+            
+        Raises:
+            opik.exceptions.GuardrailValidationFailed: If validation fails (content blocked)
+            
+        Example:
+            ```python
+            # Simple one-liner
+            safe_input = guard.validate_and_get_input("My SSN is 123-45-6789")
+            response = llm.chat(safe_input)
+            ```
+        """
+        result = self.validate_input(text, correlation_key)
+        return result.get_validated_content(text)
+    
+    def validate_and_get_output(self, input_text: str, output_text: str, correlation_key: Optional[str] = None) -> str:
+        """
+        Validate output text and return the validated content in one step.
+        
+        This is a convenience method that combines validate_output() and get_validated_content().
+        Use this when you just need the safe content to return to your user.
+        
+        Args:
+            input_text: The original input text
+            output_text: The LLM output text to validate
+            correlation_key: Optional tag/identifier for this request (PointGuard only)
+            
+        Returns:
+            str: The validated content (modified if PII was redacted, otherwise original)
+            
+        Raises:
+            opik.exceptions.GuardrailValidationFailed: If validation fails (content blocked)
+            
+        Example:
+            ```python
+            # Simple one-liner
+            safe_output = guard.validate_and_get_output(user_query, llm_response)
+            return safe_output
+            ```
+        """
+        result = self.validate_output(input_text, output_text, correlation_key)
+        return result.get_validated_content(output_text)
+
+    @GUARDRAIL_DECORATOR.track
+    def _validate_output(self, generation: str, input_text: str, correlation_key: Optional[str] = None) -> schemas.PointGuardValidationResponse:
+        """Internal method for PointGuard output validation with automatic span tracking."""
+        all_validations: List[schemas.ValidationResult] = []
+        all_passed = True
+        last_details = None
+
+        for pg_guard in self._pointguard_guards:
+            client = self._pointguard_clients[pg_guard.base_url]
+            result = client.validate_output(input_text, generation, pg_guard.policy_name, correlation_key)
+
+            all_validations.extend(result.validations)
+            if not result.validation_passed:
+                all_passed = False
+            last_details = result.details
+
+        combined_result = schemas.PointGuardValidationResponse(
+            validation_passed=all_passed,
+            validations=all_validations,
+            details=last_details,
+        )
+        
+        # Set guardrail result for tracking
+        if not all_passed:
+            combined_result.guardrail_result = "failed"
+        else:
+            combined_result.guardrail_result = "passed"
+
+        return combined_result
