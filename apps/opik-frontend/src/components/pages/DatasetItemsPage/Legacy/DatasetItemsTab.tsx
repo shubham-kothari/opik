@@ -379,6 +379,11 @@ const DatasetItemsTab: React.FC<DatasetItemsTabProps> = ({
     }));
 
     return [
+      {
+        id: "id",
+        label: "ID",
+        type: COLUMN_TYPE.string,
+      },
       ...dataFilterColumns,
       {
         id: "tags",
@@ -479,6 +484,7 @@ const DatasetItemsTab: React.FC<DatasetItemsTabProps> = ({
             columns={filtersColumnData}
             filters={filters}
             onChange={setFilters}
+            layout="icon"
           />
         </div>
         <div className="flex items-center gap-2">

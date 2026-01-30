@@ -392,6 +392,11 @@ const DatasetItemsPage = () => {
     }));
 
     return [
+      {
+        id: "id",
+        label: "ID",
+        type: COLUMN_TYPE.string,
+      },
       ...dataFilterColumns,
       {
         id: "tags",
@@ -523,6 +528,7 @@ const DatasetItemsPage = () => {
             columns={filtersColumnData}
             filters={filters}
             onChange={setFilters}
+            layout="icon"
           />
         </div>
         <div className="flex items-center gap-2">

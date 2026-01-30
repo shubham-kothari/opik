@@ -2,7 +2,7 @@
 
 A Helm chart for Comet Opik
 
-![Version: 1.9.82](https://img.shields.io/badge/Version-1.9.82-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.9.82](https://img.shields.io/badge/AppVersion-1.9.82-informational?style=flat-square)
+![Version: 1.9.101](https://img.shields.io/badge/Version-1.9.101-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.9.101](https://img.shields.io/badge/AppVersion-1.9.101-informational?style=flat-square)
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/opik)](https://artifacthub.io/packages/search?repo=opik)
 
 # Run Comet Opik with Helm
@@ -183,6 +183,7 @@ Call opik api on http://localhost:5173/api
 | clickhouse.monitoring.serviceMonitor.scrapeTimeout | string | `"30s"` |  |
 | clickhouse.monitoring.useSecret.enabled | bool | `false` |  |
 | clickhouse.monitoring.username | string | `"opikmon"` |  |
+| clickhouse.namespaceDomainPattern | string | `""` |  |
 | clickhouse.readinessProbe.failureThreshold | int | `30` |  |
 | clickhouse.readinessProbe.httpGet.path | string | `"/ping"` |  |
 | clickhouse.readinessProbe.httpGet.port | int | `8123` |  |
@@ -279,7 +280,31 @@ Call opik api on http://localhost:5173/api
 | component.frontend.autoscaling.enabled | bool | `false` |  |
 | component.frontend.awsResolver | bool | `false` |  |
 | component.frontend.backendConfigMap.enabled | bool | `false` |  |
+| component.frontend.csp.connectSrc[0] | string | `"'self'"` |  |
+| component.frontend.csp.connectSrc[1] | string | `"ws:"` |  |
+| component.frontend.csp.connectSrc[2] | string | `"wss:"` |  |
+| component.frontend.csp.connectSrc[3] | string | `"https:"` |  |
+| component.frontend.csp.enabled | bool | `true` |  |
+| component.frontend.csp.fontSrc[0] | string | `"'self'"` |  |
+| component.frontend.csp.fontSrc[1] | string | `"data:"` |  |
+| component.frontend.csp.fontSrc[2] | string | `"https://fonts.gstatic.com"` |  |
+| component.frontend.csp.frameAncestors[0] | string | `"'none'"` |  |
+| component.frontend.csp.imgSrc[0] | string | `"'self'"` |  |
+| component.frontend.csp.imgSrc[1] | string | `"data:"` |  |
+| component.frontend.csp.imgSrc[2] | string | `"blob:"` |  |
+| component.frontend.csp.imgSrc[3] | string | `"https:"` |  |
+| component.frontend.csp.imgSrc[4] | string | `"http:"` |  |
+| component.frontend.csp.mediaSrc[0] | string | `"'self'"` |  |
+| component.frontend.csp.mediaSrc[1] | string | `"https:"` |  |
+| component.frontend.csp.mediaSrc[2] | string | `"http:"` |  |
+| component.frontend.csp.scriptSrc[0] | string | `"'self'"` |  |
+| component.frontend.csp.scriptSrc[1] | string | `"'unsafe-inline'"` |  |
+| component.frontend.csp.scriptSrc[2] | string | `"'unsafe-eval'"` |  |
+| component.frontend.csp.styleSrc[0] | string | `"'self'"` |  |
+| component.frontend.csp.styleSrc[1] | string | `"'unsafe-inline'"` |  |
+| component.frontend.csp.styleSrc[2] | string | `"https://fonts.googleapis.com"` |  |
 | component.frontend.enabled | bool | `true` |  |
+| component.frontend.hstsEnabled | bool | `false` |  |
 | component.frontend.image.pullPolicy | string | `"IfNotPresent"` |  |
 | component.frontend.image.repository | string | `"opik-frontend"` |  |
 | component.frontend.image.tag | string | `"latest"` |  |
@@ -315,10 +340,12 @@ Call opik api on http://localhost:5173/api
 | component.python-backend.env.OTEL_PROPAGATORS | string | `"tracecontext,baggage"` |  |
 | component.python-backend.env.OTEL_SERVICE_NAME | string | `"opik-python-backend"` |  |
 | component.python-backend.env.PYTHON_CODE_EXECUTOR_ALLOW_NETWORK | string | `"false"` |  |
+| component.python-backend.env.PYTHON_CODE_EXECUTOR_CPU_SHARES | string | `"512"` |  |
 | component.python-backend.env.PYTHON_CODE_EXECUTOR_EXEC_TIMEOUT_IN_SECS | string | `"3"` |  |
 | component.python-backend.env.PYTHON_CODE_EXECUTOR_IMAGE_NAME | string | `"opik-sandbox-executor-python"` |  |
 | component.python-backend.env.PYTHON_CODE_EXECUTOR_IMAGE_REGISTRY | string | `"ghcr.io/comet-ml/opik"` |  |
 | component.python-backend.env.PYTHON_CODE_EXECUTOR_IMAGE_TAG | string | `"latest"` |  |
+| component.python-backend.env.PYTHON_CODE_EXECUTOR_MEM_LIMIT | string | `"256m"` |  |
 | component.python-backend.env.PYTHON_CODE_EXECUTOR_PARALLEL_NUM | string | `"5"` |  |
 | component.python-backend.env.PYTHON_CODE_EXECUTOR_STRATEGY | string | `"process"` |  |
 | component.python-backend.env.REDIS_URL | string | `"redis://:wFSuJX9nDBdCa25sKZG7bh@opik-redis-master:6379/"` |  |
