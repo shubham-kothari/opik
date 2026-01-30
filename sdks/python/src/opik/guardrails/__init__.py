@@ -1,5 +1,5 @@
 from .guardrail import Guardrail
 from .guards import Topic, PII
-from .guards.pgai import PointGuard
+from .guards.pgai.pointguardai import PointGuardAi
 
-__all__ = ["Guardrail", "Topic", "PII", "PointGuard"]
+__all__ = ["Guardrail", "Topic", "PII", "PointGuardAi"]

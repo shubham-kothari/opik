@@ -1,3 +1,3 @@
-from .pointguard import PointGuard
+from .pointguardai import PointGuardAi
 
-__all__ = ["PointGuard"]
+__all__ = ["PointGuardAi"]

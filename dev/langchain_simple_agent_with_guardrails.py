@@ -36,7 +36,7 @@ from langgraph.prebuilt import ToolNode
 
 from opik import configure
 from opik.integrations.langchain import OpikTracer
-from opik.guardrails import Guardrail, PointGuard
+from opik.guardrails import Guardrail, PointGuardAi
 from opik import exceptions
 
 # Configure Opik for local usage
@@ -62,12 +62,12 @@ llm = ChatOpenAI(
 # Initialize PointGuard guardrails (optional)
 guardrails_enabled = False
 guard = None
-policy_name = os.environ.get("POINTGUARD_POLICY_NAME")
+policy_name = os.environ.get("POINTGUARDAI_POLICY_NAME")
 
 if policy_name:
     try:
         guard = Guardrail(
-            guards=[PointGuard(policy_name=policy_name)],
+            guards=[PointGuardAi(policy_name=policy_name)],
             guardrail_timeout=30
         )
         guardrails_enabled = True
@@ -76,14 +76,14 @@ if policy_name:
         print("   Continuing without guardrails...")
 
 print("🚀 Simple Agent Workflow Starting...")
-print(f"� Environment: {'.env loaded' if ENV_FILE_LOADED else 'system variables'}")
-print(f"📊 Model: meta-llama/llama-3.1-70b-instruct")
-print(f"🔍 Opik tracing: Enabled")
-print(f"🔑 API Key: {'✓ Set' if os.environ.get('OPENROUTER_API_KEY') else '✗ Missing'}")
+print("� Environment: {'.env loaded' if ENV_FILE_LOADED else 'system variables'}")
+print("📊 Model: meta-llama/llama-3.1-70b-instruct")
+print("🔍 Opik tracing: Enabled")
+print("🔑 API Key: {'✓ Set' if os.environ.get('OPENROUTER_API_KEY') else '✗ Missing'}")
 if guardrails_enabled:
-    print(f"🛡️  PointGuard: Enabled (Policy: {policy_name})")
+    print("🛡️  PointGuard: Enabled (Policy: {policy_name})")
 else:
-    print(f"🛡️  PointGuard: Disabled")
+    print("🛡️  PointGuard: Disabled")
     print("-" * 60)
 
 # ============================================================================
@@ -149,18 +149,18 @@ class AgentState(TypedDict):
 
 def assistant_agent(state: AgentState):
     """Personal Assistant Agent: Handles user requests using available tools."""
-    print(f"\n🤖 ASSISTANT: Processing request...")
+    print("\n🤖 ASSISTANT: Processing request...")
     
     user_input = state["user_input"]
     
     # Generate unique correlation key for this request
-    correlation_key = f"Opik-test"
+    correlation_key = "Opik-test"
     
     # Validate input with PointGuard (if enabled)
     if guardrails_enabled and guard:
         try:
             user_input = guard.validate_and_get_input(user_input, correlation_key=correlation_key)
-            print(f"   ✅ Input validation passed")
+            print("   ✅ Input validation passed")
         except exceptions.GuardrailValidationFailed as e:
             print(f"   ❌ Input blocked: {e.failed_validations}")
             return {
@@ -188,14 +188,14 @@ def assistant_agent(state: AgentState):
     
     # Check if tools were called
     if response.tool_calls:
-        print(f"   🔧 Using {len(response.tool_calls)} tool(s)...")
+        print("   🔧 Using {len(response.tool_calls)} tool(s)...")
         tool_results = tool_node.invoke({"messages": [response]})
         final_messages = messages + [response] + tool_results["messages"]
         final_response = llm.invoke(final_messages)
-        print(f"   ✅ Response generated")
+        print("   ✅ Response generated")
         response_content = final_response.content
     else:
-        print(f"   ✅ Response generated")
+        print("   ✅ Response generated")
         response_content = response.content
     
     # Validate output with PointGuard (if enabled)
@@ -258,7 +258,7 @@ if __name__ == "__main__":
     # Create Opik tracer
     tracer = OpikTracer(graph=app.get_graph(xray=True))
     
-    print(f"\n🎬 Running test queries...\n")
+    print("\n🎬 Running test queries...\n")
     
     # Test 1: Weather query (uses get_weather tool)
     run_query("What's the weather like in New York? 469-12-4453", tracer)
@@ -274,9 +274,9 @@ if __name__ == "__main__":
     # # Test 4: Simple query (no tools needed)
     # run_query("Tell me a fun fact about penguins", tracer)
     
-    print(f"\n✅ All queries completed!")
-    print(f"📊 Check your Opik dashboard for trace visualization")
-    print(f"📝 Notes saved: {len(notes)}")
+    print("\n✅ All queries completed!")
+    print("📊 Check your Opik dashboard for trace visualization")
+    print("📝 Notes saved: {len(notes)}")
     if notes:
         print("\nSaved notes:")
         for note in notes:

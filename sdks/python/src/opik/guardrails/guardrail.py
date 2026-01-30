@@ -16,8 +16,8 @@ from opik.message_processing.messages import (
 from opik.opik_context import get_current_span_data, get_current_trace_data
 
 from . import guards, rest_api_client, schemas, tracing
-from .guards.pgai.pointguard import PointGuard
-from .guards.pgai.pointguard_api_client import PointGuardApiClient
+from .guards.pgai.pointguardai import PointGuardAi
+from .guards.pgai.pointguardai_api_client import PointGuardAiApiClient
 
 GUARDRAIL_DECORATOR = tracing.GuardrailsTrackDecorator()
 
@@ -78,17 +78,17 @@ class Guardrail:
             host_url=self._client.config.guardrails_backend_host,
         )
 
-        # Initialize PointGuard API clients for any PointGuard guards
-        self._pointguard_clients: dict[str, PointGuardApiClient] = {}
-        self._pointguard_guards: List[PointGuard] = []
+        # Initialize PointGuardAi API clients for any PointGuardAi guards
+        self._pointguardai_clients: dict[str, PointGuardAiApiClient] = {}
+        self._pointguardai_guards: List[PointGuardAi] = []
 
         for guard in guards:
-            if isinstance(guard, PointGuard):
-                self._pointguard_guards.append(guard)
-                # Create a client for this PointGuard if we don't have one for its base_url
-                if guard.base_url not in self._pointguard_clients:
-                    self._pointguard_clients[guard.base_url] = (
-                        PointGuardApiClient(
+            if isinstance(guard, PointGuardAi):
+                self._pointguardai_guards.append(guard)
+                # Create a client for this PointGuardAi if we don't have one for its base_url
+                if guard.base_url not in self._pointguardai_clients:
+                    self._pointguardai_clients[guard.base_url] = (
+                        PointGuardAiApiClient(
                             base_url=guard.base_url,
                             api_key=guard.api_key,
                             org=guard.org,
@@ -178,20 +178,20 @@ class Guardrail:
 
     def validate_input(
         self, text: str, correlation_key: Optional[str] = None
-    ) -> Union[schemas.ValidationResponse, schemas.PointGuardValidationResponse]:
+    ) -> Union[schemas.ValidationResponse, schemas.PointGuardAiValidationResponse]:
         """
         Validate input text against all configured guardrails.
 
-        This method validates text before it is sent to an LLM. For PointGuard guards,
-        it calls the PointGuard input validation endpoint. For other guards, it uses
+        This method validates text before it is sent to an LLM. For PointGuardAi guards,
+        it calls the PointGuardAi input validation endpoint. For other guards, it uses
         the standard validation flow.
 
         Args:
             text: The input text to validate
-            correlation_key: Optional tag/identifier for this request (PointGuard only)
+            correlation_key: Optional tag/identifier for this request (PointGuardAi only)
 
         Returns:
-            ValidationResponse or PointGuardValidationResponse containing validation results
+            ValidationResponse or PointGuardAiValidationResponse containing validation results
 
         Raises:
             opik.exceptions.GuardrailValidationFailed: If validation fails
@@ -199,35 +199,35 @@ class Guardrail:
 
         Example:
             ```python
-            from opik.guardrails import Guardrail, PointGuard
+            from opik.guardrails import Guardrail, PointGuardAi
 
             guard = Guardrail(guards=[
-                PointGuard(policy_name="my-policy")
+                PointGuardAi(policy_name="my-policy")
             ])
 
             # Validate user input before sending to LLM
             result = guard.validate_input("What is the capital of France?")
             ```
         """
-        # If we have PointGuard guards, use their input validation
-        if self._pointguard_guards:
-            result: schemas.PointGuardValidationResponse = self._validate_input(
+        # If we have PointGuardAi guards, use their input validation
+        if self._pointguardai_guards:
+            result: schemas.PointGuardAiValidationResponse = self._validate_input(
                 generation=text, correlation_key=correlation_key
             )  # type: ignore
             return self._parse_result(result)
 
-        # Fall back to standard validation for non-PointGuard guards
+        # Fall back to standard validation for non-PointGuardAi guards
         return self.validate(text)
 
     @GUARDRAIL_DECORATOR.track
-    def _validate_input(self, generation: str, correlation_key: Optional[str] = None) -> schemas.PointGuardValidationResponse:
-        """Internal method for PointGuard input validation with automatic span tracking."""
+    def _validate_input(self, generation: str, correlation_key: Optional[str] = None) -> schemas.PointGuardAiValidationResponse:
+        """Internal method for PointGuardAi input validation with automatic span tracking."""
         all_validations: List[schemas.ValidationResult] = []
         all_passed = True
         last_details = None
 
-        for pg_guard in self._pointguard_guards:
-            client = self._pointguard_clients[pg_guard.base_url]
+        for pg_guard in self._pointguardai_guards:
+            client = self._pointguardai_clients[pg_guard.base_url]
             result = client.validate_input(generation, pg_guard.policy_name, correlation_key)
 
             all_validations.extend(result.validations)
@@ -235,7 +235,7 @@ class Guardrail:
                 all_passed = False
             last_details = result.details
 
-        combined_result = schemas.PointGuardValidationResponse(
+        combined_result = schemas.PointGuardAiValidationResponse(
             validation_passed=all_passed,
             validations=all_validations,
             details=last_details,
@@ -251,22 +251,22 @@ class Guardrail:
 
     def validate_output(
         self, input_text: str, output_text: str, correlation_key: Optional[str] = None
-    ) -> Union[schemas.ValidationResponse, schemas.PointGuardValidationResponse]:
+    ) -> Union[schemas.ValidationResponse, schemas.PointGuardAiValidationResponse]:
         """
         Validate output text against all configured guardrails.
 
-        This method validates text after it is received from an LLM. For PointGuard guards,
-        it calls the PointGuard output validation endpoint with both the original input
+        This method validates text after it is received from an LLM. For PointGuardAi guards,
+        it calls the PointGuardAi output validation endpoint with both the original input
         and the LLM's output. For other guards, it uses the standard validation flow
         on the output text.
 
         Args:
             input_text: The original input text
             output_text: The LLM output text to validate
-            correlation_key: Optional tag/identifier for this request (PointGuard only)
+            correlation_key: Optional tag/identifier for this request (PointGuardAi only)
 
         Returns:
-            ValidationResponse or PointGuardValidationResponse containing validation results
+            ValidationResponse or PointGuardAiValidationResponse containing validation results
 
         Raises:
             opik.exceptions.GuardrailValidationFailed: If validation fails
@@ -274,10 +274,10 @@ class Guardrail:
 
         Example:
             ```python
-            from opik.guardrails import Guardrail, PointGuard
+            from opik.guardrails import Guardrail, PointGuardAi
 
             guard = Guardrail(guards=[
-                PointGuard(policy_name="my-policy")
+                PointGuardAi(policy_name="my-policy")
             ])
 
             # Validate LLM output
@@ -287,14 +287,14 @@ class Guardrail:
             )
             ```
         """
-        # If we have PointGuard guards, use their output validation
-        if self._pointguard_guards:
-            result: schemas.PointGuardValidationResponse = self._validate_output(
+        # If we have PointGuardAi guards, use their output validation
+        if self._pointguardai_guards:
+            result: schemas.PointGuardAiValidationResponse = self._validate_output(
                 generation=output_text, input_text=input_text, correlation_key=correlation_key
             )  # type: ignore
             return self._parse_result(result)
 
-        # Fall back to standard validation for non-PointGuard guards
+        # Fall back to standard validation for non-PointGuardAi guards
         return self.validate(output_text)
     
     def validate_and_get_input(self, text: str, correlation_key: Optional[str] = None) -> str:
@@ -306,7 +306,7 @@ class Guardrail:
         
         Args:
             text: The input text to validate
-            correlation_key: Optional tag/identifier for this request (PointGuard only)
+            correlation_key: Optional tag/identifier for this request (PointGuardAi only)
             
         Returns:
             str: The validated content (modified if PII was redacted, otherwise original)
@@ -334,7 +334,7 @@ class Guardrail:
         Args:
             input_text: The original input text
             output_text: The LLM output text to validate
-            correlation_key: Optional tag/identifier for this request (PointGuard only)
+            correlation_key: Optional tag/identifier for this request (PointGuardAi only)
             
         Returns:
             str: The validated content (modified if PII was redacted, otherwise original)
@@ -353,14 +353,14 @@ class Guardrail:
         return result.get_validated_content(output_text)
 
     @GUARDRAIL_DECORATOR.track
-    def _validate_output(self, generation: str, input_text: str, correlation_key: Optional[str] = None) -> schemas.PointGuardValidationResponse:
-        """Internal method for PointGuard output validation with automatic span tracking."""
+    def _validate_output(self, generation: str, input_text: str, correlation_key: Optional[str] = None) -> schemas.PointGuardAiValidationResponse:
+        """Internal method for PointGuardAi output validation with automatic span tracking."""
         all_validations: List[schemas.ValidationResult] = []
         all_passed = True
         last_details = None
 
-        for pg_guard in self._pointguard_guards:
-            client = self._pointguard_clients[pg_guard.base_url]
+        for pg_guard in self._pointguardai_guards:
+            client = self._pointguardai_clients[pg_guard.base_url]
             result = client.validate_output(input_text, generation, pg_guard.policy_name, correlation_key)
 
             all_validations.extend(result.validations)
@@ -368,7 +368,7 @@ class Guardrail:
                 all_passed = False
             last_details = result.details
 
-        combined_result = schemas.PointGuardValidationResponse(
+        combined_result = schemas.PointGuardAiValidationResponse(
             validation_passed=all_passed,
             validations=all_validations,
             details=last_details,

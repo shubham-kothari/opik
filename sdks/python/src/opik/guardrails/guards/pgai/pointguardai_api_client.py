@@ -1,14 +1,14 @@
 from typing import Optional, List, Dict, Any
 
 import httpx
-from ...schemas import PointGuardValidationDetails, PointGuardValidationResponse, ValidationType, ValidationResult
+from ...schemas import PointGuardAiValidationDetails, PointGuardAiValidationResponse, ValidationType, ValidationResult
 
 
-class PointGuardApiClient:
+class PointGuardAiApiClient:
     """
-    API client for the PointGuard (AppSoc) guardrails service.
+    API client for the PointGuardAi (AppSoc) guardrails service.
 
-    Handles communication with PointGuard's input and output validation endpoints
+    Handles communication with PointGuardAi's input and output validation endpoints
     using the AppSoc API format.
     """
 
@@ -20,10 +20,10 @@ class PointGuardApiClient:
         timeout: Optional[int] = None,
     ) -> None:
         """
-        Initialize the PointGuard API client.
+        Initialize the PointGuardAi API client.
 
         Args:
-            base_url: Base URL for the PointGuard API
+            base_url: Base URL for the PointGuardAi API
             api_key: API key for authentication (AppSoc API key)
             org: Organization name for AppSoc
             timeout: Request timeout in seconds (default: 30)
@@ -51,9 +51,9 @@ class PointGuardApiClient:
         text: str,
         policy_name: str,
 correlation_key: Optional[str] = None,
-    ) -> PointGuardValidationResponse:
+    ) -> PointGuardAiValidationResponse:
         """
-        Validate input text using the PointGuard V2 input endpoint.
+        Validate input text using the PointGuardAi V2 input endpoint.
 
         Args:
             text: The input text to validate
@@ -61,7 +61,7 @@ correlation_key: Optional[str] = None,
             correlation_key: Optional tag/identifier for this request
 
         Returns:
-            PointGuardValidationResponse containing the validation result
+            PointGuardAiValidationResponse containing the validation result
 
         Raises:
             httpx.HTTPStatusError: If the API returns an error status code
@@ -89,9 +89,9 @@ correlation_key: Optional[str] = None,
         output_text: str,
         policy_name: str,
         correlation_key: Optional[str] = None,
-    ) -> PointGuardValidationResponse:
+    ) -> PointGuardAiValidationResponse:
         """
-        Validate output text using the PointGuard V2 output endpoint.
+        Validate output text using the PointGuardAi V2 output endpoint.
 
         Args:
             input_text: The original input text (for context)
@@ -100,7 +100,7 @@ correlation_key: Optional[str] = None,
             correlation_key: Optional tag/identifier for this request
 
         Returns:
-            PointGuardValidationResponse containing the validation result
+            PointGuardAiValidationResponse containing the validation result
 
         Raises:
             httpx.HTTPStatusError: If the API returns an error status code
@@ -128,7 +128,7 @@ correlation_key: Optional[str] = None,
         response_data: dict,
         policy_name: str,
         original_text: str,
-    ) -> PointGuardValidationResponse:
+    ) -> PointGuardAiValidationResponse:
         """
         Parse the V2 input validation API response.
 
@@ -157,7 +157,7 @@ correlation_key: Optional[str] = None,
         response_data: dict,
         policy_name: str,
         original_text: str,
-    ) -> PointGuardValidationResponse:
+    ) -> PointGuardAiValidationResponse:
         """
         Parse the V2 output validation API response.
 
@@ -187,7 +187,7 @@ correlation_key: Optional[str] = None,
         result_section: dict,
         policy_name: str,
         original_text: str,
-    ) -> PointGuardValidationResponse:
+    ) -> PointGuardAiValidationResponse:
         """
         Parse a result section (input or output) from the V2 API response.
 
@@ -197,7 +197,7 @@ correlation_key: Optional[str] = None,
             original_text: The original text that was validated
 
         Returns:
-            PointGuardValidationResponse with parsed data
+            PointGuardAiValidationResponse with parsed data
         """
         blocked = result_section.get("blocked", False)
         modified = result_section.get("modified", False)
@@ -227,7 +227,7 @@ correlation_key: Optional[str] = None,
             if modified:
                 modified_content = item.get("modifiedContent")
 
-        validation_details = PointGuardValidationDetails(
+        validation_details = PointGuardAiValidationDetails(
             blocked=blocked,
             modified=modified,
             violations=violations,
@@ -239,12 +239,12 @@ correlation_key: Optional[str] = None,
 
         validation_result = ValidationResult(
             validation_passed=validation_passed,
-            type=ValidationType.POINTGUARD,
+            type=ValidationType.POINTGUARDAI,
             validation_config={"policy_name": policy_name},
             validation_details=validation_details.model_dump(),
         )
 
-        return PointGuardValidationResponse(
+        return PointGuardAiValidationResponse(
             validation_passed=validation_passed,
             validations=[validation_result],
             details=validation_details,

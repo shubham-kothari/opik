@@ -8,7 +8,7 @@ from opik.rest_api.types.check_public_result import CheckPublicResult
 class ValidationType(str, enum.Enum):
     PII = "PII"
     TOPIC = "TOPIC"
-    POINTGUARD = "POINTGUARD"
+    POINTGUARDAI = "POINTGUARDAI"
 
 
 class ValidationResult(pydantic.BaseModel):
@@ -25,8 +25,8 @@ class ValidationResponse(pydantic.BaseModel):
     guardrail_result: Optional[CheckPublicResult] = None
 
 
-class PointGuardValidationDetails(pydantic.BaseModel):
-    """Details of a PointGuard validation result."""
+class PointGuardAiValidationDetails(pydantic.BaseModel):
+    """Details of a PointGuardAi validation result."""
 
     blocked: bool
     modified: bool
@@ -34,10 +34,10 @@ class PointGuardValidationDetails(pydantic.BaseModel):
     modified_content: Optional[str] = None
 
 
-class PointGuardValidationResponse(ValidationResponse):
-    """Response from a PointGuard validation request."""
+class PointGuardAiValidationResponse(ValidationResponse):
+    """Response from a PointGuardAi validation request."""
 
-    details: PointGuardValidationDetails
+    details: PointGuardAiValidationDetails
 
     def get_validated_content(self, original_content: str) -> str:
         """
